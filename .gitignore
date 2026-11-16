@@ -60,3 +60,11 @@ flutter/web/
 /third_party/libdrmtap/
 # Local git worktrees
 .worktrees/
+# RustDeskV
+# Release keys never go in the repo; only the fixed debug keystore is committed.
+*.jks
+*.keystore
+!flutter/android/app/rustdeskv-debug.keystore
+# README banner and docs images
+!docs/images/*.jpg
+!docs/images/*.png
