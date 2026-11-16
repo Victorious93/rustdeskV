@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="primary">#FF0071FF</color>
+    <!-- RustDeskV neon palette -->
+    <color name="rustdeskv_bg">#FF0B0F1A</color>
+    <color name="rustdeskv_cyan">#FF00E5FF</color>
+    <color name="rustdeskv_magenta">#FFFF2BD6</color>
 </resources>

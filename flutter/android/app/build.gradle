@@ -98,8 +98,11 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.carriez.flutter_hbb"
+        // RustDeskV (Victorious fleet) application ID. The Kotlin package and
+        // `namespace` above stay `com.carriez.flutter_hbb` on purpose: the Rust
+        // library exports JNI symbols named `Java_com_carriez_flutter_1hbb_*`,
+        // so renaming the Kotlin package would break native linking.
+        applicationId "com.victorious.rustdeskv"
         minSdkVersion 22
         targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
