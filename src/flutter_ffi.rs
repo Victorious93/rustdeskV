@@ -53,6 +53,8 @@ fn initialize(app_dir: &str, custom_client_config: &str) {
     } else {
         crate::read_custom_client(custom_client_config);
     }
+    // RustDeskV: apply build-time server defaults (idempotent).
+    crate::rustdeskv::apply_defaults();
     #[cfg(target_os = "android")]
     {
         // flexi_logger can't work when android_logger initialized.

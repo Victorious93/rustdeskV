@@ -1173,10 +1173,19 @@ fn process_software_update_check_response(bytes: Bytes) -> ResultType<()> {
     Ok(())
 }
 
+/// RustDeskV builds never ask api.rustdesk.com for updates.
+const RUSTDESKV_DISABLE_UPSTREAM_UPDATE_CHECK: bool = true;
+
 // No need to check `danger_accept_invalid_cert` for now.
 // Because the url is always `https://api.rustdesk.com/version/latest`.
 #[tokio::main(flavor = "current_thread")]
 pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
+    // RustDeskV: the upstream update check posts device info to
+    // api.rustdesk.com and offers RustDesk (not RustDeskV) builds. Disabled.
+    if RUSTDESKV_DISABLE_UPSTREAM_UPDATE_CHECK {
+        log::info!("RustDeskV: upstream software update check is disabled");
+        return Ok(());
+    }
     let (request, url) =
         hbb_common::version_check_request(hbb_common::VER_TYPE_RUSTDESK_CLIENT.to_string());
     let proxy_conf = Config::get_socks();
@@ -1308,7 +1317,8 @@ fn get_api_server_(api: String, custom: String) -> String {
             return format!("http://{}", s);
         }
     }
-    "https://admin.rustdesk.com".to_owned()
+    // RustDeskV: no fallback to RustDesk's hosted admin/API server.
+    "".to_owned()
 }
 
 #[inline]
@@ -2507,6 +2517,12 @@ pub fn rustdesk_interval(i: Interval) -> ThrottledInterval {
 }
 
 pub fn load_custom_client() {
+    load_custom_client_();
+    // RustDeskV: never fall back to RustDesk's public servers.
+    crate::rustdeskv::apply_defaults();
+}
+
+fn load_custom_client_() {
     #[cfg(debug_assertions)]
     if let Ok(data) = std::fs::read_to_string("./custom.txt") {
         read_custom_client(data.trim());

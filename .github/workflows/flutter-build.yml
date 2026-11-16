@@ -61,6 +61,13 @@ env:
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   PUBLISH_UPDATE_METADATA: "${{ inputs.publish-update-metadata }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
+  # RustDeskV server defaults, compiled into the Rust library (src/rustdeskv.rs).
+  # Unset secrets mean an empty default: the app asks the user to set a server
+  # in Settings > Network and never falls back to rustdesk.com.
+  RUSTDESKV_RENDEZVOUS_SERVER: "${{ secrets.RUSTDESKV_RENDEZVOUS_SERVER }}"
+  RUSTDESKV_RELAY_SERVER: "${{ secrets.RUSTDESKV_RELAY_SERVER }}"
+  RUSTDESKV_RS_PUB_KEY: "${{ secrets.RUSTDESKV_RS_PUB_KEY }}"
+  RUSTDESKV_API_SERVER: "${{ secrets.RUSTDESKV_API_SERVER }}"
 
 jobs:
   validate-update-metadata-keys:
