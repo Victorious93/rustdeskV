@@ -21,6 +21,8 @@ mod rendezvous_mediator;
 pub use self::rendezvous_mediator::*;
 /// cbindgen:ignore
 pub mod common;
+/// RustDeskV fleet defaults (server config from build-time env vars).
+pub mod rustdeskv;
 #[cfg(not(any(target_os = "ios")))]
 pub mod ipc;
 #[cfg(not(any(

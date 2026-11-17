@@ -20,5 +20,7 @@ on:
 jobs:
   run-ci:
     uses: ./.github/workflows/flutter-build.yml
+    # RustDeskV: pass RUSTDESKV_* server secrets through (empty on fork PRs).
+    secrets: inherit
     with:
       upload-artifact: false
