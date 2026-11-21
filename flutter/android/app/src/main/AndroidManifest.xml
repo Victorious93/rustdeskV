@@ -26,6 +26,7 @@
         </intent>
     </queries>
 
+    <queries><package android:name="com.termux" /></queries>
     <application
         android:name=".MainApplication"
         android:icon="@mipmap/ic_launcher"
@@ -97,6 +98,11 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="@string/foreground_service_special_use_subtype" />
         </service>
+
+        <!-- VictorSuite terminal hand-off transport. Exported for VictorSuite; each call is checked against the owner-pinned VictorSuite certificate. -->
+        <service
+            android:name=".VictorTerminalTransportService"
+            android:exported="true" />
 
         <service
             android:name=".FloatingWindowService"

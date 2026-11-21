@@ -90,6 +90,10 @@ message LoginRequest {
 
 message Terminal {
   string service_id = 1;  // Service ID for reconnecting to existing session
+  // VictorSuite hand-off capability declared by the CLIENT ("victorsuite/1"): its terminal UI is VictorSuite's (Android) or it is not an
+  // Android/iOS client. A host refuses Terminal logins from Android/iOS clients that do not declare it (older rustdeskV builds draw
+  // their own terminal and would bypass VictorSuite). Absent (older client) = not declared.
+  string victorsuite_handoff = 2;
 }
 
 message Auth2FA {
@@ -104,6 +108,9 @@ message Features {
   bool privacy_mode = 1;
   bool terminal = 2;
   bool port_forward_mux = 3;
+  // This host enforces the VictorSuite terminal hand-off (see Terminal.victorsuite_handoff). Clients use it to tell an enforcing host
+  // from an older one. Absent = older host.
+  bool terminal_victorsuite_handoff = 4;
 }
 
 message CodecAbility {

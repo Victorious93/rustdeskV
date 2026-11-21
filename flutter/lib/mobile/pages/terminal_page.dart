@@ -19,6 +19,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:xterm/xterm.dart';
 import '../../desktop/pages/terminal_connection_manager.dart';
 import '../../consts.dart';
+import '../victorsuite_terminal.dart';
 
 const _terminalBackgroundOpacity = 0.7;
 
@@ -102,6 +103,12 @@ class _TerminalPageState extends State<TerminalPage>
 
   late FFI _ffi;
   late TerminalModel _terminalModel;
+  // VictorSuite hand-off (Android): this page never draws its own terminal there.
+  String _handoffStatus = 'Connecting…';
+  String? _handoffError;
+  bool _needsTrust = false;
+  String? _victorCert;
+  bool get _handoff => isAndroid;
   double? _cellHeight;
   double _sysKeyboardHeight = 0;
   Timer? _keyboardDebounce;
@@ -167,6 +174,11 @@ class _TerminalPageState extends State<TerminalPage>
 
     // Register this terminal model with FFI for event routing
     _ffi.registerTerminalModel(widget.terminalId, _terminalModel);
+    if (_handoff) {
+      _terminalModel.onRemoteOpened = () => unawaited(_handOff());
+      // output is routed as soon as the hand-off exists; before that, nothing is drawn or kept here
+      _terminalModel.onRemoteOutput = (_) {};
+    }
 
     // Auto-close connection when shell exits
     _terminalModel.onClosed = () {
@@ -411,9 +423,55 @@ class _TerminalPageState extends State<TerminalPage>
     return KeyEventResult.handled;
   }
 
+  Future<void> _handOff() async {
+    final sid = 'rd-${widget.id}-${widget.terminalId}-${DateTime.now().millisecondsSinceEpoch}';
+    final cand = await VictorSuiteTerminal.candidate();
+    _victorCert = cand['cert'] as String?;
+    final r = await VictorSuiteTerminal.attach(
+        sid: sid, peerId: widget.id, peerName: widget.id, model: _terminalModel, onClose: () => clientClose(sessionId, _ffi));
+    if (!mounted) return;
+    setState(() {
+      if (r.isEmpty) {
+        _handoffStatus = 'Open in VictorSuite.';
+        _handoffError = null;
+        _needsTrust = false;
+      } else {
+        _handoffError = VictorSuiteTerminal.explain(r);
+        _needsTrust = r == 'not_trusted' && _victorCert != null;
+      }
+    });
+  }
+
+  Future<void> _reviewVictorCert() async {
+    final cert = _victorCert;
+    if (cert == null) return;
+    final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+              title: const Text('Trust VictorSuite?'),
+              content: Text('VictorSuite (com.termux) signing certificate SHA-256:\n\n${RegExp('.{1,32}').allMatches(cert).map((m) => m.group(0)).join('\n')}\n\nOnly this exact certificate will be allowed to show terminals carried by rustdeskV.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Trust')),
+              ],
+            ));
+    if (ok == true) {
+      await VictorSuiteTerminal.trust(cert);
+      await _handOff();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    if (_handoff) {
+      return VictorSuiteHandoffView(
+          status: _handoffStatus,
+          peer: widget.id,
+          error: _handoffError,
+          onTrust: _needsTrust ? _reviewVictorCert : null,
+          onClose: () => clientClose(sessionId, _ffi));
+    }
     return WillPopScope(
       onWillPop: () async {
         clientClose(sessionId, _ffi);
