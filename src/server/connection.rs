@@ -2794,10 +2794,12 @@ impl Connection {
             Some(login_request::Union::Terminal(t)) => {
                 let Terminal {
                     service_id,
+                    victorsuite_handoff,
                     special_fields: _,
                 } = t;
                 push(b"terminal");
                 push(service_id.as_bytes());
+                push(victorsuite_handoff.as_bytes());
             }
             Some(login_request::Union::PortForward(pf)) => {
                 let PortForward {
