@@ -91,6 +91,8 @@ class MainActivity : FlutterActivity() {
             channelTag
         )
         initFlutterChannel(flutterMethodChannel!!)
+        // VictorSuite terminal hand-off has its own channel so it never competes with the page-scoped mChannel handler.
+        VictorTerminalBridge.channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "victorsuite_terminal").also { initVictorChannel(it) }
         thread {
             try {
                 setCodecInfo()
@@ -245,6 +247,16 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); handleVictorIntent(intent) }
+
+    /** VictorSuite → Remote shell asked rustdeskV to connect a terminal to a peer. Honoured only while a trusted VictorSuite call is waiting for it. */
+    private fun handleVictorIntent(i: Intent?) {
+        if (i?.action != "com.carriez.flutter_hbb.VICTORSUITE_TERMINAL") return
+        val peer = i.getStringExtra("peer_id") ?: return
+        if (!VictorTerminalBridge.expectingPeer(peer)) return
+        VictorTerminalBridge.channel?.invokeMethod("open_terminal", mapOf("peer_id" to peer))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (_rdClipboardManager == null) {
@@ -282,6 +294,23 @@ class MainActivity : FlutterActivity() {
         override fun onServiceDisconnected(name: ComponentName?) {
             Log.d(logTag, "onServiceDisconnected")
             mainService = null
+        }
+    }
+
+    private fun initVictorChannel(ch: MethodChannel) {
+        ch.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "victor_terminal_candidate" -> result.success(mapOf("installed" to (VictorTerminalBridge.certSha256(this, VictorTerminalBridge.VICTORSUITE_PKG) != null),
+                    "cert" to VictorTerminalBridge.certSha256(this, VictorTerminalBridge.VICTORSUITE_PKG), "pinned" to VictorTerminalBridge.pinned(this)))
+                "victor_terminal_trust" -> { (call.argument<String>("cert"))?.let { VictorTerminalBridge.pin(this, it) }; result.success(true) }
+                "victor_terminal_untrust" -> { VictorTerminalBridge.unpin(this); result.success(true) }
+                "victor_terminal_register" -> result.success(VictorTerminalBridge.register(this, call.argument<String>("sid") ?: "", call.argument<String>("peer_id") ?: "",
+                    call.argument<String>("peer_name") ?: "", call.argument<Boolean>("launch") ?: true))
+                "victor_terminal_output" -> { VictorTerminalBridge.output(call.argument<String>("sid") ?: "", call.argument<ByteArray>("data") ?: ByteArray(0)); result.success(true) }
+                "victor_terminal_exit" -> { VictorTerminalBridge.exited(call.argument<String>("sid") ?: "", call.argument<Int>("status") ?: -1); result.success(true) }
+                "victor_terminal_peers" -> { @Suppress("UNCHECKED_CAST") VictorTerminalPeers.update((call.arguments as? List<Map<String, Any?>>).orEmpty()); result.success(true) }
+                else -> result.notImplemented()
+            }
         }
     }
 

@@ -97,6 +97,8 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
     }
 
+    buildFeatures { aidl true }   // VictorSuite terminal transport AIDL
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId "com.carriez.flutter_hbb"

@@ -2099,6 +2099,7 @@ impl Connection {
             privacy_mode: privacy_mode::is_privacy_mode_supported(),
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             terminal,
+            terminal_victorsuite_handoff: true,
             ..Default::default()
         })
         .into();
@@ -2793,10 +2794,12 @@ impl Connection {
             Some(login_request::Union::Terminal(t)) => {
                 let Terminal {
                     service_id,
+                    victorsuite_handoff,
                     special_fields: _,
                 } = t;
                 push(b"terminal");
                 push(service_id.as_bytes());
+                push(victorsuite_handoff.as_bytes());
             }
             Some(login_request::Union::PortForward(pf)) => {
                 let PortForward {
@@ -2957,6 +2960,21 @@ impl Connection {
                         return false;
                     }
 
+                    // VictorSuite hand-off: refuse phone clients that do not declare it, so an older client cannot draw its own terminal
+                    // (bypassing VictorSuite). On a phone host the terminal is served only through VictorSuite's broker.
+                    match crate::server::terminal_policy::admit_terminal(
+                        &lr.my_platform,
+                        &terminal.victorsuite_handoff,
+                        cfg!(any(target_os = "android", target_os = "ios")),
+                        false, // no Android host terminal service is wired yet (see docs/VICTORSUITE_TERMINAL.md): fail closed
+                    ) {
+                        crate::server::terminal_policy::Admission::Allow => {}
+                        crate::server::terminal_policy::Admission::Deny(why) => {
+                            self.send_login_error(why).await;
+                            sleep(1.).await;
+                            return false;
+                        }
+                    }
                     self.terminal = true;
                     if let Some(o) = self.options_in_login.as_ref() {
                         self.terminal_persistent =

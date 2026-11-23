@@ -35,6 +35,8 @@ use video_service::VideoSource;
 use crate::ipc::Data;
 
 pub mod audio_service;
+// VictorSuite terminal hand-off admission rules (pure; unit-tested standalone).
+pub mod terminal_policy;
 #[cfg(target_os = "windows")]
 pub mod terminal_helper;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
