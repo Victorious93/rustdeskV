@@ -396,6 +396,43 @@ pub fn call_main_service_get_by_name(name: &str) -> JniResult<String> {
     }
 }
 
+/// VictorSuite terminal host (rustdeskV on a phone): asks the Kotlin side (`MainService.rustVictorTerminal`) to talk to VictorSuite's
+/// shell broker. `op` is `open | input | resize | close`. Returns "" on success or the broker's reject code. Terminal bytes are passed
+/// through and never logged here.
+pub fn call_main_service_victor_terminal(op: &str, sid: &str, peer: &str, a: i32, b: i32, data: &[u8]) -> JniResult<String> {
+    if let (Some(jvm), Some(ctx)) = (
+        JVM.read().unwrap().as_ref(),
+        MAIN_SERVICE_CTX.read().unwrap().as_ref(),
+    ) {
+        let mut env = jvm.attach_current_thread_as_daemon()?;
+        let res = env.with_local_frame(10, |env| -> JniResult<String> {
+            let op = env.new_string(op)?;
+            let sid = env.new_string(sid)?;
+            let peer = env.new_string(peer)?;
+            let data = env.byte_array_from_slice(data)?;
+            let res = env.call_method(
+                ctx,
+                "rustVictorTerminal",
+                "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;II[B)Ljava/lang/String;",
+                &[
+                    JValue::Object(&JObject::from(op)),
+                    JValue::Object(&JObject::from(sid)),
+                    JValue::Object(&JObject::from(peer)),
+                    JValue::Int(a),
+                    JValue::Int(b),
+                    JValue::Object(&JObject::from(data)),
+                ],
+            )?;
+            let res = JString::from(res.l()?);
+            let res = env.get_string(&res)?;
+            Ok(res.to_string_lossy().to_string())
+        })?;
+        Ok(res)
+    } else {
+        Err(JniError::ThrowFailed(-1))
+    }
+}
+
 pub fn call_main_service_set_by_name(
     name: &str,
     arg1: Option<&str>,
