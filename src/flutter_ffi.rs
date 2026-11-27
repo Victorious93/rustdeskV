@@ -3189,7 +3189,7 @@ pub mod server_side {
         jboolean::from(crate::server::is_clipboard_service_ok())
     }
 
-/// VictorSuite shell broker event for an Android host terminal session (see `server/android_terminal_glue.rs`).
+    /// VictorSuite shell broker event for an Android host terminal session (see `server/android_terminal_glue.rs`).
     /// `kind` is `state | output | exit`. Output bytes are routed to the owning rustdesk connection and never logged.
     #[no_mangle]
     pub unsafe extern "system" fn Java_ffi_FFI_onVictorTerminalEvent(
