@@ -7,6 +7,7 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/widgets/overlay.dart';
+import 'package:flutter_hbb/mobile/victorsuite_terminal.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/pages/install_page.dart';
 import 'package:flutter_hbb/desktop/pages/server_page.dart';
@@ -178,6 +179,14 @@ void runMobileApp() async {
   checkUpdate();
   if (isAndroid) androidChannelInit();
   if (isAndroid) platformFFI.syncAndroidServiceAppDirConfigPath();
+  if (isAndroid) {
+    // VictorSuite → Remote shell asks rustdeskV to open a terminal to one named peer (Android only honours it while a trusted VictorSuite call waits).
+    VictorSuiteTerminal.onOpenRequest = (peerId) {
+      final ctx = globalKey.currentContext;
+      if (ctx != null) connect(ctx, peerId, isTerminal: true);
+    };
+    VictorSuiteTerminal.candidate(); // installs the channel handler
+  }
   draggablePositions.load();
   await Future.wait([gFFI.abModel.loadCache(), gFFI.groupModel.loadCache()]);
   gFFI.userModel.refreshCurrentUser();

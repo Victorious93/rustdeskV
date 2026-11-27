@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:async';
 import 'dart:convert';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
@@ -87,6 +88,21 @@ class TerminalModel with ChangeNotifier {
   /// Called when the terminal session ends (shell exits).
   /// The listener (typically TerminalPage) can use this to auto-close the tab/page.
   VoidCallback? onClosed;
+
+  /// VictorSuite hand-off (Android): when set, remote output goes to VictorSuite's terminal view instead of the xterm widget, and the
+  /// page never draws its own terminal. See lib/mobile/victorsuite_terminal.dart.
+  void Function(Uint8List bytes)? onRemoteOutput;
+  void Function(int exitCode)? onRemoteExit;
+  VoidCallback? onRemoteOpened;
+
+  /// Keystrokes from VictorSuite (forwarded now, never queued by this layer).
+  Future<void> sendRemoteInput(Uint8List bytes) => _sendInputPayload(utf8.decode(bytes, allowMalformed: true));
+
+  Future<void> resizeRemote(int cols, int rows) async {
+    if (_disposed || !_terminalOpened) return;
+    await bind.sessionResizeTerminal(
+        sessionId: parent.sessionId, terminalId: terminalId, rows: rows, cols: cols);
+  }
 
   ValueChanged<String>? onClipboardWriteBlocked;
   ValueChanged<String>? onClipboardWriteSucceeded;
@@ -424,6 +440,7 @@ class TerminalModel with ChangeNotifier {
 
     if (success) {
       _terminalOpened = true;
+      onRemoteOpened?.call();
 
       // On reconnect, the server may replay recent output. That replay can include
       // terminal queries like DSR/DA; xterm answers them through onOutput as
@@ -487,6 +504,23 @@ class TerminalModel with ChangeNotifier {
 
   void _handleTerminalData(Map<String, dynamic> evt) {
     final data = evt['data'];
+
+    if (onRemoteOutput != null && data != null) {
+      try {
+        if (data is String) {
+          try {
+            onRemoteOutput!(Uint8List.fromList(base64Decode(data)));
+          } catch (_) {
+            onRemoteOutput!(Uint8List.fromList(utf8.encode(data)));
+          }
+        } else if (data is List) {
+          onRemoteOutput!(Uint8List.fromList(List<int>.from(data)));
+        }
+      } catch (e) {
+        debugPrint('[TerminalModel] hand-off output failed: $e');
+      }
+      return;
+    }
 
     if (data != null) {
       final suppressTerminalOutput = _suppressNextTerminalDataOutput;
@@ -610,6 +644,7 @@ class TerminalModel with ChangeNotifier {
 
   void _handleTerminalClosed(Map<String, dynamic> evt) {
     final int exitCode = getExitCodeFromEvt(evt);
+    onRemoteExit?.call(exitCode);
     _writeToTerminal('\r\nTerminal closed with exit code: $exitCode\r\n');
     _terminalOpened = false;
     notifyListeners();

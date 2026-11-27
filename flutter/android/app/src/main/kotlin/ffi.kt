@@ -28,6 +28,8 @@ object FFI {
     external fun getBuildinOption(key: String): String
     external fun onClipboardUpdate(clips: ByteBuffer)
     external fun isServiceClipboardEnabled(): Boolean
+    /** VictorSuite shell broker event for an Android host terminal session (kind: state | output | exit). */
+    external fun onVictorTerminalEvent(sid: String, kind: String, state: String, reason: String, data: ByteArray, code: Int)
     external fun setDocumentLogsEnabled(enabled: Boolean)
     external fun setInputServiceOpen(open: Boolean)
 }

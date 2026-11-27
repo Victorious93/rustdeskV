@@ -35,6 +35,12 @@ use video_service::VideoSource;
 use crate::ipc::Data;
 
 pub mod audio_service;
+// VictorSuite terminal hand-off admission rules (pure; unit-tested standalone).
+pub mod terminal_policy;
+// Android HOST terminal served by VictorSuite's shell broker: pure core (unit-tested standalone) + JNI glue.
+pub mod android_terminal_host;
+#[cfg(target_os = "android")]
+pub mod android_terminal_glue;
 #[cfg(target_os = "windows")]
 pub mod terminal_helper;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]

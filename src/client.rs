@@ -3885,6 +3885,12 @@ impl LoginConfigHandler {
             ConnType::TERMINAL => {
                 let mut terminal = Terminal::new();
                 terminal.service_id = self.get_option(self.get_key_terminal_service_id());
+                // This Android build never draws its own terminal: the Flutter page hands the session to VictorSuite (and shows the reason
+                // if it cannot) — so declaring the hand-off is truthful. Hosts refuse phone clients that do not declare it.
+                #[cfg(any(target_os = "android", target_os = "ios"))]
+                {
+                    terminal.victorsuite_handoff = crate::server::terminal_policy::HANDOFF_V1.to_owned();
+                }
                 lr.set_terminal(terminal);
             }
             _ => {}

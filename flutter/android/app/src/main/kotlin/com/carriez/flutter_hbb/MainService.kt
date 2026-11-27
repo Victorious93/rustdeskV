@@ -94,9 +94,15 @@ class MainService : Service() {
         InputService.ctx?.onKeyEvent(input)
     }
 
+    /** Android host terminal: Rust asks VictorSuite's broker to open/feed/resize/close a session. Returns "" or an error code. */
+    @Keep
+    fun rustVictorTerminal(op: String, sid: String, peer: String, a: Int, b: Int, data: ByteArray): String =
+        VictorHostTerminal.handle(this, op, sid, peer, a, b, data)
+
     @Keep
     fun rustGetByName(name: String): String {
         return when (name) {
+            "victorsuite_terminal_ready" -> VictorHostTerminal.ready(this).toString()
             "screen_size" -> {
                 JSONObject().apply {
                     put("width",SCREEN_INFO.width)
@@ -240,6 +246,7 @@ class MainService : Service() {
         super.onCreate()
         Log.d(logTag,"MainService onCreate, sdk int:${Build.VERSION.SDK_INT} reuseVirtualDisplay:$reuseVirtualDisplay")
         FFI.init(this)
+        VictorHostTerminal.ensureBound(this)
         HandlerThread("Service", Process.THREAD_PRIORITY_BACKGROUND).apply {
             start()
             serviceLooper = looper

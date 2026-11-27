@@ -3189,6 +3189,37 @@ pub mod server_side {
         jboolean::from(crate::server::is_clipboard_service_ok())
     }
 
+/// VictorSuite shell broker event for an Android host terminal session (see `server/android_terminal_glue.rs`).
+    /// `kind` is `state | output | exit`. Output bytes are routed to the owning rustdesk connection and never logged.
+    #[no_mangle]
+    pub unsafe extern "system" fn Java_ffi_FFI_onVictorTerminalEvent(
+        mut env: JNIEnv,
+        _class: JClass,
+        sid: JString,
+        kind: JString,
+        state: JString,
+        reason: JString,
+        data: jni::objects::JByteArray,
+        code: jni::sys::jint,
+    ) {
+        use crate::server::android_terminal_host::BrokerEvent;
+        let text = |env: &mut JNIEnv, s: &JString| -> String {
+            env.get_string(s).map(|v| v.to_string_lossy().to_string()).unwrap_or_default()
+        };
+        let sid = text(&mut env, &sid);
+        let kind = text(&mut env, &kind);
+        let ev = match kind.as_str() {
+            "state" => BrokerEvent::State { state: text(&mut env, &state), reason: text(&mut env, &reason) },
+            "output" => match env.convert_byte_array(&data) {
+                Ok(bytes) => BrokerEvent::Output(bytes),
+                Err(_) => return,
+            },
+            "exit" => BrokerEvent::Exit(code),
+            _ => return,
+        };
+        crate::server::android_terminal_glue::on_broker_event(&sid, ev);
+    }
+
     /// Keeps `enable-keyboard` in step with InputService when the Flutter UI is not running.
     #[no_mangle]
     pub unsafe extern "system" fn Java_ffi_FFI_setInputServiceOpen(

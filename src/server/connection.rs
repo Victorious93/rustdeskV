@@ -2094,6 +2094,11 @@ impl Connection {
         // Terminal feature is supported on desktop only
         #[allow(unused_mut)]
         let mut terminal = cfg!(not(any(target_os = "android", target_os = "ios")));
+        // On a phone the terminal exists only when VictorSuite's shell broker is ready to serve it (never a rustdeskV-owned shell).
+        #[cfg(target_os = "android")]
+        {
+            terminal = crate::server::android_terminal_glue::broker_ready();
+        }
         #[cfg(target_os = "windows")]
         {
             terminal = terminal && portable_pty::win::check_support().is_ok();
@@ -2102,8 +2107,9 @@ impl Connection {
         pi.sas_enabled = sas_enabled;
         pi.features = Some(Features {
             privacy_mode: privacy_mode::is_privacy_mode_supported(),
-            #[cfg(not(any(target_os = "android", target_os = "ios")))]
+            #[cfg(not(target_os = "ios"))]
             terminal,
+            terminal_victorsuite_handoff: true,
             ..Default::default()
         })
         .into();
@@ -2227,6 +2233,8 @@ impl Connection {
             self.keyboard = false;
             #[cfg(not(any(target_os = "android", target_os = "ios")))]
             self.init_terminal_service().await;
+            #[cfg(target_os = "android")]
+            crate::server::android_terminal_glue::register_conn(&self.inner);
         } else if self.view_camera {
             if !wait_session_id_confirm {
                 self.try_sub_camera_displays();
@@ -2798,10 +2806,12 @@ impl Connection {
             Some(login_request::Union::Terminal(t)) => {
                 let Terminal {
                     service_id,
+                    victorsuite_handoff,
                     special_fields: _,
                 } = t;
                 push(b"terminal");
                 push(service_id.as_bytes());
+                push(victorsuite_handoff.as_bytes());
             }
             Some(login_request::Union::PortForward(pf)) => {
                 let PortForward {
@@ -2962,10 +2972,37 @@ impl Connection {
                         return false;
                     }
 
+                    // VictorSuite hand-off: refuse phone clients that do not declare it, so an older client cannot draw its own terminal
+                    // (bypassing VictorSuite). On a phone host the terminal is served only through VictorSuite's broker.
+                    match crate::server::terminal_policy::admit_terminal(
+                        &lr.my_platform,
+                        &terminal.victorsuite_handoff,
+                        cfg!(any(target_os = "android", target_os = "ios")),
+                        // Android: served by VictorSuite's broker (docs/VICTORSUITE_TERMINAL.md). iOS: none, fail closed.
+                        {
+                            #[cfg(target_os = "android")]
+                            let ready = crate::server::android_terminal_glue::broker_ready();
+                            #[cfg(not(target_os = "android"))]
+                            let ready = false;
+                            ready
+                        },
+                    ) {
+                        crate::server::terminal_policy::Admission::Allow => {}
+                        crate::server::terminal_policy::Admission::Deny(why) => {
+                            self.send_login_error(why).await;
+                            sleep(1.).await;
+                            return false;
+                        }
+                    }
                     self.terminal = true;
                     if let Some(o) = self.options_in_login.as_ref() {
                         self.terminal_persistent =
                             o.terminal_persistent.enum_value() == Ok(BoolOption::Yes);
+                    }
+                    // A phone terminal is never persistent: a reconnect starts a new, newly approved VictorSuite session.
+                    #[cfg(target_os = "android")]
+                    {
+                        self.terminal_persistent = false;
                     }
                     self.terminal_service_id = terminal.service_id;
                 }
@@ -4142,7 +4179,12 @@ impl Connection {
                 Some(message::Union::TerminalAction(action)) => {
                     #[cfg(not(any(target_os = "android", target_os = "ios")))]
                     allow_err!(self.handle_terminal_action(action).await);
-                    #[cfg(any(target_os = "android", target_os = "ios"))]
+                    // Only an authorised Terminal connection may drive VictorSuite; the broker then asks the owner on the phone.
+                    #[cfg(target_os = "android")]
+                    if self.terminal && self.authorized {
+                        crate::server::android_terminal_glue::on_action(self.inner.id(), &self.lr.my_id, &action);
+                    }
+                    #[cfg(target_os = "ios")]
                     log::warn!("Terminal action received but not supported on this platform");
                 }
                 _ => {}
@@ -5324,6 +5366,11 @@ impl Connection {
             return;
         }
         self.closed = true;
+        // End every VictorSuite shell this connection opened on the phone (nothing keeps running unattended).
+        #[cfg(target_os = "android")]
+        if self.terminal {
+            crate::server::android_terminal_glue::on_disconnect(self.inner.id());
+        }
         // If voice A,B -> C, and A,B has voice call
         // B disconnects, C will reset the voice call input.
         //

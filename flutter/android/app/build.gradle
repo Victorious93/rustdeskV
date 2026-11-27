@@ -97,6 +97,8 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
     }
 
+    buildFeatures { aidl true }   // VictorSuite terminal transport AIDL
+
     defaultConfig {
         // RustDeskV (Victorious fleet) application ID. The Kotlin package and
         // `namespace` above stay `com.carriez.flutter_hbb` on purpose: the Rust
