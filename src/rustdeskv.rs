@@ -18,7 +18,7 @@
 //! Settings > Network (or a signed `custom.txt`) still wins.
 
 use base::config::keys;
-use hbb_common::config;
+use hbb_common::{config, log};
 
 /// Placeholder rendezvous host used when no server was compiled in and the
 /// user has not set one yet. `.invalid` is reserved by RFC 6761 and never
