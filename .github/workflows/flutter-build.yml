@@ -61,6 +61,13 @@ env:
   UPLOAD_ARTIFACT: "${{ inputs.upload-artifact }}"
   PUBLISH_UPDATE_METADATA: "${{ inputs.publish-update-metadata }}"
   SIGN_BASE_URL: "${{ secrets.SIGN_BASE_URL }}-2"
+  # RustDeskV server defaults, compiled into the Rust library (src/rustdeskv.rs).
+  # Unset secrets mean an empty default: the app asks the user to set a server
+  # in Settings > Network and never falls back to rustdesk.com.
+  RUSTDESKV_RENDEZVOUS_SERVER: "${{ secrets.RUSTDESKV_RENDEZVOUS_SERVER }}"
+  RUSTDESKV_RELAY_SERVER: "${{ secrets.RUSTDESKV_RELAY_SERVER }}"
+  RUSTDESKV_RS_PUB_KEY: "${{ secrets.RUSTDESKV_RS_PUB_KEY }}"
+  RUSTDESKV_API_SERVER: "${{ secrets.RUSTDESKV_API_SERVER }}"
 
 jobs:
   validate-update-metadata-keys:
@@ -102,9 +109,7 @@ jobs:
   generate-sbom:
     needs: [validate-update-metadata-keys]
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
+    # Inherit caller permissions: CI is read-only; release callers grant contents: write.
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -924,7 +929,7 @@ jobs:
         job:
           - {
               target: x86_64-apple-darwin,
-              os: macos-15-intel, #macos-latest or macos-14 use M1 now, https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#:~:text=14%20GB-,macos%2Dlatest%20or%20macos%2D14,-The%20macos%2Dlatestlabel
+              os: macos-26-intel, #macos-latest or macos-14 use M1 now, https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#:~:text=14%20GB-,macos%2Dlatest%20or%20macos%2D14,-The%20macos%2Dlatestlabel
               extra-build-args: "",
               extra-cargo-features: "",
               arch: x86_64,
@@ -932,7 +937,7 @@ jobs:
             }
           - {
               target: aarch64-apple-darwin,
-              os: macos-15,
+              os: macos-26,
               # extra-build-args: "--disable-flutter-texture-render", # disable this for mac, because we see a lot of users reporting flickering both on arm and x64, and we can not confirm if texture rendering has better performance if htere is no vram, https://github.com/rustdesk/rustdesk/issues/6296
               extra-build-args: "--screencapturekit",
               extra-cargo-features: ",screencapturekit",
@@ -959,6 +964,7 @@ jobs:
           p12-file-base64: ${{ secrets.MACOS_P12_BASE64 }}
           p12-password: ${{ secrets.MACOS_P12_PASSWORD }}
           keychain: rustdesk
+          keychain-password: ${{ secrets.MACOS_P12_PASSWORD }}
 
       - name: Check sign and import sign key
         if: env.MACOS_P12_BASE64 != null
@@ -1210,9 +1216,7 @@ jobs:
     concurrency:
       group: signed-update-${{ inputs.upload-tag }}
       cancel-in-progress: false
-    permissions:
-      # Required to inspect and publish signed release assets for the target tag.
-      contents: write
+    # Publishing inherits contents: write from the release caller.
     steps:
       - name: Refuse to replace published update metadata
         shell: bash
@@ -1510,6 +1514,20 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           submodules: recursive
+
+      - name: Check JNI natives are in ffi.FFI
+        # Custom clients rename com.carriez.flutter_hbb; only ffi.FFI keeps its name.
+        shell: bash
+        run: |
+          bad=0
+          grep -rnE --include='*.rs' 'fn Java_' src libs | grep -v 'fn Java_ffi_FFI_' && bad=1
+          grep -rl --include='*.kt' 'external fun' flutter/android \
+            | grep -vx 'flutter/android/app/src/main/kotlin/ffi.kt' && bad=1
+          grep -rn --include='*.rs' 'com/carriez' src libs && bad=1
+          if [ "$bad" = 1 ]; then
+            echo "::error::Declare Android natives in ffi.FFI, export them as Java_ffi_FFI_*, and do not look up app classes by name (see AGENTS.md)"
+            exit 1
+          fi
 
       - name: Install flutter
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
@@ -2169,6 +2187,11 @@ jobs:
             export CARGO_INCREMENTAL=0
             export DEB_ARCH=${{ matrix.job.deb_arch }}
             python3 ./build.py --flutter --skip-cargo
+            if [[ "${{ matrix.job.arch }}" == "x86_64" && "${{ inputs.upload-artifact }}" == "false" ]]; then
+              pushd /workspace/flutter
+              flutter test --no-pub --timeout 60s || exit 1
+              popd
+            fi
             for name in rustdesk*??.deb; do
               mv "$name" "${name%%.deb}-${{ matrix.job.arch }}.deb"
             done

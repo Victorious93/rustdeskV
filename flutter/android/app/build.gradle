@@ -100,8 +100,11 @@ android {
     buildFeatures { aidl true }   // VictorSuite terminal transport AIDL
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId "com.carriez.flutter_hbb"
+        // RustDeskV (Victorious fleet) application ID. The Kotlin package and
+        // `namespace` above stay `com.carriez.flutter_hbb` on purpose: the Rust
+        // library exports JNI symbols named `Java_com_carriez_flutter_1hbb_*`,
+        // so renaming the Kotlin package would break native linking.
+        applicationId "com.victorious.rustdeskv"
         minSdkVersion 22
         targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
@@ -109,6 +112,17 @@ android {
     }
 
     signingConfigs {
+      // Fixed RustDeskV debug key, committed on purpose so every debug build
+      // (local or CI) has the same signature and updates install over each
+      // other. Standard Android debug credentials; NOT a release key.
+      debug {
+        storeFile file('rustdeskv-debug.keystore')
+        storePassword 'android'
+        keyAlias 'androiddebugkey'
+        keyPassword 'android'
+      }
+      // Release key comes only from android/key.properties (never committed)
+      // or the CI secret ANDROID_SIGNING_KEY.
       release {
         keyAlias keystoreProperties['keyAlias']
         keyPassword keystoreProperties['keyPassword']
@@ -118,9 +132,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Signed with the key from key.properties. CI swaps this to the
+            // fixed debug key and then re-signs with ANDROID_SIGNING_KEY.
             signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules'
         }

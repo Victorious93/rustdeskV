@@ -1,40 +1,44 @@
 <p align="center">
-  <img src="res/logo-header.svg" alt="RustDesk - Your remote desktop"><br>
+  <img src="docs/images/rustdeskv-banner.jpg" alt="RustDeskV - Your desktop. Anywhere. Self-hosted." width="100%"><br>
+  <a href="docs/MANUAL.md">Manual</a> •
+  <a href="#server-settings">Server settings</a> •
   <a href="#raw-steps-to-build">Build</a> •
-  <a href="#how-to-build-with-docker">Docker</a> •
   <a href="#file-structure">Structure</a> •
-  <a href="#screenshots">Screenshots</a><br>
-  [<a href="docs/README-UA.md">Українська</a>] | [<a href="docs/README-CS.md">česky</a>] | [<a href="docs/README-ZH.md">中文</a>] | [<a href="docs/README-HU.md">Magyar</a>] | [<a href="docs/README-ES.md">Español</a>] | [<a href="docs/README-FA.md">فارسی</a>] | [<a href="docs/README-FR.md">Français</a>] | [<a href="docs/README-DE.md">Deutsch</a>] | [<a href="docs/README-PL.md">Polski</a>] | [<a href="docs/README-ID.md">Indonesian</a>] | [<a href="docs/README-FI.md">Suomi</a>] | [<a href="docs/README-ML.md">മലയാളം</a>] | [<a href="docs/README-JP.md">日本語</a>] | [<a href="docs/README-NL.md">Nederlands</a>] | [<a href="docs/README-IT.md">Italiano</a>] | [<a href="docs/README-RU.md">Русский</a>] | [<a href="docs/README-PTPT.md">Português (Portugal)</a>] | [<a href="docs/README-PTBR.md">Português (Brasil)</a>] | [<a href="docs/README-EO.md">Esperanto</a>] | [<a href="docs/README-KR.md">한국어</a>] | [<a href="docs/README-AR.md">العربي</a>] | [<a href="docs/README-VN.md">Tiếng Việt</a>] | [<a href="docs/README-DA.md">Dansk</a>] | [<a href="docs/README-GR.md">Ελληνικά</a>] | [<a href="docs/README-TR.md">Türkçe</a>] | [<a href="docs/README-NO.md">Norsk</a>] | [<a href="docs/README-RO.md">Română</a>]<br>
-  <b>We need your help to translate this README, <a href="https://github.com/rustdesk/rustdesk/tree/master/src/lang">RustDesk UI</a> and <a href="https://github.com/rustdesk/doc.rustdesk.com">RustDesk Doc</a> to your native language</b>
+  <a href="#credits-and-license">Credits</a>
 </p>
 
+# RustDeskV
+
+**Your desktop. Anywhere. Self-hosted.**
+
+RustDeskV is the Victorious fleet's fork of [RustDesk](https://github.com/rustdesk/rustdesk), the open-source remote desktop app written in Rust and Flutter. It is built to run only against **your own** ID/relay server (hbbs/hbbr), for example on your home network or over Headscale/Tailscale.
+
+- **No public servers.** RustDeskV never falls back to RustDesk's public servers. If no server was built in, the app asks you to set one in **Settings > Network**.
+- **No upstream update checks.** It does not contact `api.rustdesk.com` for updates.
+- **Same signature on every debug build.** Debug APKs are signed with a fixed RustDeskV debug key, so a new build installs over the old one.
+- **Plain-English manual.** See [docs/MANUAL.md](docs/MANUAL.md), also available in the app under Settings > About > Help.
+
 > [!Caution]
-> **Misuse Disclaimer:** <br>
-> The developers of RustDesk do not condone or support any unethical or illegal use of this software. Misuse, such as unauthorized access, control or invasion of privacy, is strictly against our guidelines. The authors are not responsible for any misuse of the application.
+> **Use responsibly.** Only use RustDeskV on devices you own or are explicitly authorized to access. Unauthorized access, control, or invasion of privacy is illegal in most places and is not supported by this project.
 
+## Server settings
 
-Chat with us: [Discord](https://discord.gg/nDceKgxnkV) | [Twitter](https://twitter.com/rustdesk) | [Reddit](https://www.reddit.com/r/rustdesk) | [YouTube](https://www.youtube.com/@rustdesk)
+RustDeskV reads its default server at **build time** from these environment variables (in GitHub Actions, from repository secrets of the same names). Anything left unset is empty, never rustdesk.com:
 
-[![RustDesk Server Pro](https://img.shields.io/badge/RustDesk%20Server%20Pro-Advanced%20Features-blue)](https://rustdesk.com/pricing.html)
+| Variable | What it is | Example |
+| --- | --- | --- |
+| `RUSTDESKV_RENDEZVOUS_SERVER` | ID / rendezvous server (hbbs) | `100.64.0.10` or `rd.example.com:21116` |
+| `RUSTDESKV_RELAY_SERVER` | Relay server (hbbr) | `100.64.0.10:21117` |
+| `RUSTDESKV_RS_PUB_KEY` | Server public key (contents of `id_ed25519.pub`) | `AbCd...=` |
+| `RUSTDESKV_API_SERVER` | Optional API server URL | `http://100.64.0.10:21114` |
 
-Yet another remote desktop solution, written in Rust. Works out of the box with no configuration required. You have full control of your data, with no concerns about security. You can use our rendezvous/relay server, [set up your own](https://rustdesk.com/server), or [write your own rendezvous/relay server](https://github.com/rustdesk/rustdesk-server-demo).
+Users can always override these in **Settings > Network > ID/Relay server**. See `src/rustdeskv.rs` for how the defaults are applied.
 
-![image](https://user-images.githubusercontent.com/71636191/171661982-430285f0-2e12-4b1d-9957-4a58e375304d.png)
+## Credits and license
 
-RustDesk welcomes contribution from everyone. See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for help getting started.
+RustDeskV is **forked from [RustDesk](https://github.com/rustdesk/rustdesk)** by Purslane Tech Pte. Ltd. and the RustDesk contributors, and is licensed under the **GNU AGPL-3.0**, the same as upstream (see [LICENCE](LICENCE)). All upstream copyright notices are kept. RustDeskV is not affiliated with or endorsed by RustDesk.
 
-[**FAQ**](https://github.com/rustdesk/rustdesk/wiki/FAQ)
-
-[**BINARY DOWNLOAD**](https://github.com/rustdesk/rustdesk/releases)
-
-[**NIGHTLY BUILD**](https://github.com/rustdesk/rustdesk/releases/tag/nightly)
-
-[<img src="https://f-droid.org/badge/get-it-on.png"
-    alt="Get it on F-Droid"
-    height="80">](https://f-droid.org/en/packages/com.carriez.flutter_hbb)
-[<img src="https://flathub.org/api/badge?svg&locale=en"
-    alt="Get it on Flathub"
-    height="80">](https://flathub.org/apps/com.rustdesk.RustDesk)
+The build instructions below are inherited from upstream RustDesk and still apply.
 
 ## Dependencies
 
@@ -57,7 +61,9 @@ Please download Sciter dynamic library yourself.
 
 - run `cargo run`
 
-## [Build](https://rustdesk.com/docs/en/dev/build/)
+## Build
+
+Upstream build docs: https://rustdesk.com/docs/en/dev/build/ (reference only).
 
 ## How to Build on Linux
 
@@ -117,8 +123,8 @@ cd
 ```sh
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source $HOME/.cargo/env
-git clone --recurse-submodules https://github.com/rustdesk/rustdesk
-cd rustdesk
+git clone --recurse-submodules https://github.com/Victorious93/rustdeskV
+cd rustdeskV
 mkdir -p target/debug
 wget https://raw.githubusercontent.com/c-smile/sciter-sdk/master/bin.lnx/x64/libsciter-gtk.so
 mv libsciter-gtk.so target/debug
@@ -130,8 +136,8 @@ VCPKG_ROOT=$HOME/vcpkg cargo run
 Begin by cloning the repository and building the Docker container:
 
 ```sh
-git clone https://github.com/rustdesk/rustdesk
-cd rustdesk
+git clone https://github.com/Victorious93/rustdeskV
+cd rustdeskV
 git submodule update --init --recursive
 docker build -t "rustdesk-builder" .
 ```

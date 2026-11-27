@@ -21,7 +21,7 @@ import '../../desktop/pages/terminal_connection_manager.dart';
 import '../../consts.dart';
 import '../victorsuite_terminal.dart';
 
-const _terminalBackgroundOpacity = 0.7;
+const _terminalBackgroundOpacity = 1.0;
 
 Widget _buildTerminalViewForPlatform({
   required bool reportMouseInput,

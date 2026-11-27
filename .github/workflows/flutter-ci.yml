@@ -20,5 +20,8 @@ on:
 jobs:
   run-ci:
     uses: ./.github/workflows/flutter-build.yml
+    permissions:
+      contents: read
+    # Validation builds use unconfigured server defaults and no release secrets.
     with:
       upload-artifact: false

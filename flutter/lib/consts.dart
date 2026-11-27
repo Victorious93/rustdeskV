@@ -6,6 +6,15 @@ import 'package:get/get.dart';
 
 export 'common/widgets/keyboard_shortcuts/shortcut_constants.dart';
 
+// RustDeskV links. Upstream rustdesk.com links are replaced by these.
+const String kRustDeskVRepoUrl = 'https://github.com/Victorious93/rustdeskV';
+const String kRustDeskVReleasesUrl =
+    'https://github.com/Victorious93/rustdeskV/releases';
+const String kRustDeskVManualUrl =
+    'https://github.com/Victorious93/rustdeskV/blob/master/docs/MANUAL.md';
+const String kRustDeskVPrivacyUrl =
+    'https://github.com/Victorious93/rustdeskV/blob/master/docs/MANUAL.md#11-privacy-and-legal';
+
 const int kMaxVirtualDisplayCount = 4;
 const int kAllVirtualDisplay = -1;
 
