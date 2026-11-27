@@ -15,11 +15,15 @@ RustDeskV is the Victorious fleet's fork of [RustDesk](https://github.com/rustde
 
 - **No public servers.** RustDeskV never falls back to RustDesk's public servers. If no server was built in, the app asks you to set one in **Settings > Network**.
 - **No upstream update checks.** It does not contact `api.rustdesk.com` for updates.
-- **Same signature on every debug build.** Debug APKs are signed with a fixed RustDeskV debug key, so a new build installs over the old one.
+- **Test builds with a stable debug signature.** The committed debug key is public and provides no publisher authentication. Never use these builds for trusted fleet operation. Download `TEST-ONLY` APKs from GitHub Actions for isolated testing; Android GitHub releases require a private signing key.
 - **Plain-English manual.** See [docs/MANUAL.md](docs/MANUAL.md), also available in the app under Settings > About > Help.
 
 > [!Caution]
 > **Use responsibly.** Only use RustDeskV on devices you own or are explicitly authorized to access. Unauthorized access, control, or invasion of privacy is illegal in most places and is not supported by this project.
+
+## Android release signing
+
+For production, configure a privately generated Android release keystore in GitHub Actions secrets (`ANDROID_SIGNING_KEY`, `ANDROID_ALIAS`, `ANDROID_KEY_STORE_PASSWORD`, `ANDROID_KEY_PASSWORD`). Keep the private key offline and verify the published signing certificate against your own known fingerprint before trusting RustDeskV in VictorSuite or enrolling it in the fleet. Without release signing secrets, builds upload explicitly labeled test-only APKs to Actions rather than publishing Android release assets. Do not publish these test artifacts to the fleet F-Droid repository. Moving from the public debug key to a production key may require uninstalling the test APK; export any needed settings first and re-establish trust explicitly.
 
 ## Server settings
 

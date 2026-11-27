@@ -38,13 +38,13 @@ A few words you will see:
 
 RustDeskV is not in the Play Store. You install it from an APK file.
 
-1. Get the RustDeskV APK from the person who builds it for you, or from the project's GitHub Releases page.
+1. Get a privately signed RustDeskV APK from your fleet administrator or the project's GitHub Releases page. For isolated development only, use a `TEST-ONLY` APK from the relevant GitHub Actions run.
    - Most modern phones need the file ending in `arm64-v8a.apk`.
 2. Open the APK on your phone.
 3. If Android says it blocks apps from unknown sources, tap **Settings** and allow installs from the app you used to open the file (for example, your browser or Files app). Then go back and tap **Install**.
 4. Open **RustDeskV** from your app drawer.
 
-Updating: install the newer APK over the old one. Your settings stay. Debug builds of RustDeskV are all signed with the same key, so they install over each other. If Android says "App not installed" or "package conflicts", the new APK was signed with a different key; uninstall the old version first (this resets its settings).
+Updating: APKs signed with the same signing key can normally update in place. The shared debug key is public: anyone holding it can sign an APK with the same identity. Do not grant test builds trusted terminal access or use them on production devices. Verify the production signing certificate independently before granting trust in VictorSuite. If Android reports a signing conflict, do not uninstall blindly: confirm the new APK's origin and certificate, export needed settings, then uninstall the test build if migrating to a private release key. Re-establish trust for the new certificate; uninstalling resets app settings.
 
 RustDeskV has its own app ID (`com.victorious.rustdeskv`), so it can sit next to the regular RustDesk app on the same phone.
 
