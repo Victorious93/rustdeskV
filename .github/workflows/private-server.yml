@@ -1,0 +1,31 @@
+name: Private server kit
+on:
+  pull_request:
+    paths:
+      - 'deploy/private-server/**'
+      - '.github/workflows/private-server.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'deploy/private-server/**'
+      - '.github/workflows/private-server.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: deploy/private-server
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - name: Unit tests
+        run: python3 -m unittest -v
+      - name: Validate Compose model without starting containers
+        run: |
+          image="ghcr.io/rustdesk/rustdesk-server@sha256:$(printf '%064d' 0)"
+          python3 serverctl.py configure --bind-ip 100.64.0.10 --image "$image"
+          python3 serverctl.py check
